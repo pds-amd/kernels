@@ -7,6 +7,16 @@
 
 final: prev:
 {
+  # RPM's runtime macro describes where built packages install their headers,
+  # not where RPM's own headers live. Using the Nix dev path creates out/dev
+  # references in both directions. Keep the macro relative to the RPM prefix.
+  rpm = prev.rpm.overrideAttrs (prevAttrs: {
+    postPatch = (prevAttrs.postPatch or "") + ''
+      substituteInPlace platform.in \
+        --replace-fail '@includedir@' '%{_prefix}/include'
+    '';
+  });
+
   # Local packages/hooks.
   kernel-builder = final.callPackage ./pkgs/kernel-builder { inherit builderProvenance; };
 
