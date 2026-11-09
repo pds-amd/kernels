@@ -215,6 +215,8 @@ final: prev:
           };
         });
 
+        flydsl = python-self.callPackage ./pkgs/python-modules/flydsl { };
+
         hipify-torch = python-self.callPackage ./pkgs/python-modules/hipify-torch { };
 
         helion = python-super.helion.overrideAttrs (

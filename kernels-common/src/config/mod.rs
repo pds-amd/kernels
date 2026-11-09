@@ -45,6 +45,8 @@ const KERNELS_VERSION_BASELINE: Version<3> = Version::new([0, 14, 0]);
 /// First `kernels` version that can resolve kernel dependencies.
 const KERNELS_VERSION_KERNEL_DEPENDS: Version<3> = Version::new([0, 17, 0]);
 
+const KERNELS_VERSION_FLYDSL: Version<3> = Version::new([0, 19, 0]);
+
 pub struct Build {
     pub general: General,
     pub kernels: HashMap<String, Kernel>,
@@ -82,6 +84,17 @@ impl Build {
         // older versions would fail to import the kernel.
         if !self.general.all_kernel_depends(backend).is_empty() {
             required = required.max(KERNELS_VERSION_KERNEL_DEPENDS);
+        }
+
+        if backend == Backend::Rocm
+            && self
+                .general
+                .rocm
+                .as_ref()
+                .and_then(|rocm| rocm.python_depends.as_ref())
+                .is_some_and(|deps| deps.iter().any(|dep| dep == "flydsl"))
+        {
+            required = required.max(KERNELS_VERSION_FLYDSL);
         }
 
         required
@@ -149,6 +162,7 @@ pub struct General {
     pub python_depends: Option<Vec<String>>,
 
     pub cuda: Option<CudaGeneral>,
+    pub rocm: Option<RocmGeneral>,
     pub neuron: Option<NeuronGeneral>,
     pub tpu: Option<TpuGeneral>,
     pub xpu: Option<XpuGeneral>,
@@ -182,6 +196,10 @@ impl General {
                 .cuda
                 .as_ref()
                 .and_then(|cuda| cuda.python_depends.as_ref()),
+            Backend::Rocm => self
+                .rocm
+                .as_ref()
+                .and_then(|rocm| rocm.python_depends.as_ref()),
             Backend::Tpu => self
                 .tpu
                 .as_ref()
@@ -238,6 +256,10 @@ pub struct CudaGeneral {
     pub minver: Option<Version<2>>,
     pub maxver: Option<Version<2>>,
     pub kernel_depends: Option<Vec<KernelDependency>>,
+    pub python_depends: Option<Vec<String>>,
+}
+
+pub struct RocmGeneral {
     pub python_depends: Option<Vec<String>>,
 }
 
@@ -583,6 +605,7 @@ mod tests {
                 kernel_depends: None,
                 python_depends: Some(vec!["nvidia-cutlass-dsl".to_string()]),
             }),
+            rocm: None,
             neuron: None,
             tpu: None,
             xpu: None,
@@ -599,6 +622,57 @@ mod tests {
             .unwrap();
 
         assert_eq!(deps, vec!["nvidia-cutlass-dsl".to_string()]);
+    }
+
+    #[test]
+    fn rocm_python_dependencies_round_trip_and_remain_backend_specific() {
+        let toml = r#"
+            [general]
+            name = "test-kernel"
+            version = 1
+            edition = 6
+            license = "mit"
+            backends = ["cpu", "rocm"]
+            python-depends = ["einops"]
+
+            [general.rocm]
+            python-depends = ["flydsl"]
+
+            [torch-noarch]
+            [kernel]
+        "#;
+        let config: CurrentConfig = toml::from_str(toml).unwrap();
+        let build = Build::try_from(config).unwrap();
+        assert_eq!(
+            build.required_kernels_version(Backend::Rocm),
+            Version::new([0, 19, 0])
+        );
+        assert_eq!(
+            build.required_kernels_version(Backend::Cpu),
+            Version::new([0, 14, 0])
+        );
+        assert_eq!(
+            build.general.all_python_depends(Backend::Rocm).unwrap(),
+            ["einops", "flydsl"]
+        );
+        assert_eq!(
+            build.general.all_python_depends(Backend::Cpu).unwrap(),
+            ["einops"]
+        );
+        assert_eq!(
+            build.general.all_python_depends(Backend::Cuda).unwrap(),
+            ["einops"]
+        );
+        let serialized = toml::to_string(&CurrentConfig::from(build)).unwrap();
+        let round_trip =
+            Build::try_from(toml::from_str::<CurrentConfig>(&serialized).unwrap()).unwrap();
+        assert_eq!(
+            round_trip
+                .general
+                .all_python_depends(Backend::Rocm)
+                .unwrap(),
+            ["einops", "flydsl"]
+        );
     }
 
     #[test]

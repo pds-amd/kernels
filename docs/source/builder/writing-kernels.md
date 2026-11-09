@@ -210,12 +210,23 @@ The following sections enumerate all supported options for `build.toml`.
   `flake.nix` so that it can be pulled and built with the kernel builder.
 - `python-depends` (**experimental**): a list of additional Python dependencies
   that the kernel requires. The only supported dependencies are `einops`,
-  `helion`, and `nvidia-cutlass-dsl`.
+  `helion`, and `tvm-ffi`. Backend-specific dependencies are declared in the
+  corresponding backend section.
 
 ### `general.hub`
 
 - `repo-id`: the Hub repository to upload the kernel to when the `upload` or
   `build-and-upload` subcommands of `kernel-builder` are used.
+
+### `general.rocm`
+
+- `python-depends` (**experimental**): additional ROCm-specific Python
+  dependencies. The supported dependency is `flydsl`.
+
+```toml
+[general.rocm]
+python-depends = ["flydsl"]
+```
 
 ### `general.cuda`
 

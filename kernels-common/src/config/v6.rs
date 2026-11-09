@@ -56,6 +56,8 @@ pub struct General {
 
     pub cuda: Option<CudaGeneral>,
 
+    pub rocm: Option<RocmGeneral>,
+
     pub hub: Option<Hub>,
 
     pub kernel_depends: Option<Vec<KernelDependency>>,
@@ -75,6 +77,12 @@ pub struct CudaGeneral {
     pub minver: Option<Version<2>>,
     pub maxver: Option<Version<2>>,
     pub kernel_depends: Option<Vec<KernelDependency>>,
+    pub python_depends: Option<Vec<String>>,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields, rename_all = "kebab-case")]
+pub struct RocmGeneral {
     pub python_depends: Option<Vec<String>>,
 }
 
@@ -259,6 +267,7 @@ impl From<General> for super::General {
             source: general.source,
             backends: general.backends.into_iter().map(Into::into).collect(),
             cuda: general.cuda.map(Into::into),
+            rocm: general.rocm.map(Into::into),
             hub: general.hub.map(Into::into),
             kernel_depends: general.kernel_depends,
             neuron: general.neuron.map(Into::into),
@@ -496,6 +505,7 @@ impl From<super::General> for General {
             source: general.source,
             backends: general.backends.into_iter().map(Into::into).collect(),
             cuda: general.cuda.map(Into::into),
+            rocm: general.rocm.map(Into::into),
             hub: general.hub.map(Into::into),
             kernel_depends: general.kernel_depends,
             neuron: general.neuron.map(Into::into),
@@ -704,6 +714,22 @@ impl From<super::Kernel> for Kernel {
                 include,
                 src,
             },
+        }
+    }
+}
+
+impl From<RocmGeneral> for super::RocmGeneral {
+    fn from(rocm: RocmGeneral) -> Self {
+        Self {
+            python_depends: rocm.python_depends,
+        }
+    }
+}
+
+impl From<super::RocmGeneral> for RocmGeneral {
+    fn from(rocm: super::RocmGeneral) -> Self {
+        Self {
+            python_depends: rocm.python_depends,
         }
     }
 }

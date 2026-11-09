@@ -28,7 +28,12 @@
         "python": [{ "pkg": "nki", "import": "nki" }]
       }
     },
-    "rocm": {},
+    "rocm": {
+      "flydsl": {
+        "nix": ["flydsl"],
+        "python": [{ "pkg": "flydsl", "import": "flydsl" }]
+      }
+    },
     "xpu": {
       "onednn": {
         "nix": [],

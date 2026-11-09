@@ -225,6 +225,7 @@ The following dependencies are currently allowed:
 **Backend-specific dependencies:**
 
 - CUDA: `nvidia-cutlass-dsl`
+- ROCm: `flydsl` (Linux x86_64)
 - XPU: `onednn`
 
 Dependencies are validated based on the backend being used. When a kernel is loaded, only the dependencies relevant to the active backend are checked.

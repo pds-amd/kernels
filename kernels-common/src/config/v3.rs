@@ -203,6 +203,7 @@ impl TryFrom<General> for super::General {
             source: None,
             backends: general.backends.into_iter().map(Into::into).collect(),
             cuda: general.cuda.map(Into::into),
+            rocm: None,
             hub: general.hub.map(Into::into),
             kernel_depends: None,
             neuron: general.neuron.map(Into::into),

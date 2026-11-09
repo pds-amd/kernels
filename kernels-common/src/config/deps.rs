@@ -107,7 +107,25 @@ pub enum DependencyError {
 
 #[cfg(test)]
 mod tests {
-    use super::Dependency;
+    use super::{Dependency, PYTHON_DEPENDENCIES};
+    use crate::config::Backend;
+
+    #[test]
+    fn flydsl_rocm_dependency_resolves() {
+        let dependency = PYTHON_DEPENDENCIES
+            .get_backend_dependency(Backend::Rocm, "flydsl")
+            .unwrap();
+        assert!(PYTHON_DEPENDENCIES.get_dependency("flydsl").is_err());
+        assert!(
+            PYTHON_DEPENDENCIES
+                .get_backend_dependency(Backend::Cuda, "flydsl")
+                .is_err()
+        );
+        assert_eq!(dependency.nix, ["flydsl"]);
+        assert_eq!(dependency.python.len(), 1);
+        assert_eq!(dependency.python[0].pkg, "flydsl");
+        assert_eq!(dependency.python[0].import.as_deref(), Some("flydsl"));
+    }
 
     #[test]
     fn torch_stable_abi_shim_round_trips() {
